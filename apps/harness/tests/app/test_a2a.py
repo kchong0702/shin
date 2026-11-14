@@ -14,7 +14,7 @@ from src.app.container import Container
 from src.core.config import AgentSettings
 from tests.conftest import ScriptedChatModel
 
-PATH = "/shin/a2a/greeter"
+PATH = "/amaya/a2a/greeter"
 GREETER = AgentSettings(
     name="greeter",
     path=Path(__file__).parents[1] / "agents/fixtures/greeter/profile.yaml",

@@ -11,8 +11,8 @@ LONG_TEXT = "word " * 100
 
 @pytest.fixture
 def limits(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("SHIN_HARNESS_BROWSER__MAX_PAGE_CHARS", "120")
-    monkeypatch.setenv("SHIN_HARNESS_BROWSER__MAX_LINKS", "2")
+    monkeypatch.setenv("AMAYA_HARNESS_BROWSER__MAX_PAGE_CHARS", "120")
+    monkeypatch.setenv("AMAYA_HARNESS_BROWSER__MAX_LINKS", "2")
     get_settings.cache_clear()
     yield
     monkeypatch.undo()

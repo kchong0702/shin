@@ -1,12 +1,12 @@
 # Harness architecture
 
-The harness serves Shin's agents over A2A, one app for every agent. Read this page before you change how the harness is put together: its layers, agents, tools or the A2A contract. Follow [the coding guidelines](../development/coding-guidelines.md) for the code itself.
+The harness serves Amaya's agents over A2A, one app for every agent. Read this page before you change how the harness is put together: its layers, agents, tools or the A2A contract. Follow [the coding guidelines](../development/coding-guidelines.md) for the code itself.
 
 ## Layers
 
 | Folder        | Holds                                                                                          |
 | ------------- | ---------------------------------------------------------------------------------------------- |
-| `src/app`     | The FastAPI app, the dependency-injector `Container`, and `Executable`, which serves an agent at `/shin/a2a/<name>` |
+| `src/app`     | The FastAPI app, the dependency-injector `Container`, and `Executable`, which serves an agent at `/amaya/a2a/<name>` |
 | `src/core`    | Settings, read from `config.toml` and the environment                                          |
 | `src/agents`  | One folder per agent: `profile.yaml`, `system.md`, optional `skills/` and `tools/`. Also the registry and `build_agent` |
 | `src/clients` | The LLM providers                                                                              |
@@ -27,7 +27,7 @@ An agent is a folder under `src/agents/<name>/` with:
 
 ## Sothoth
 
-Sothoth is the research agent, served at `/shin/a2a/sothoth` and registered in `config.toml` on `openai` `gpt-6-luna`. It answers research questions by reading web pages with its one tool, `read_page`, which lives in `src/agents/sothoth/tools/` because only Sothoth uses it (see [Browser](#browser)). Its `system.md` tells it to:
+Sothoth is the research agent, served at `/amaya/a2a/sothoth` and registered in `config.toml` on `openai` `gpt-6-luna`. It answers research questions by reading web pages with its one tool, `read_page`, which lives in `src/agents/sothoth/tools/` because only Sothoth uses it (see [Browser](#browser)). Its `system.md` tells it to:
 
 - follow links to primary sources,
 - cite the URL each claim came from,
@@ -40,7 +40,7 @@ Sothoth has no search tool yet. It starts from the URLs it was given and follows
 
 ## A2A
 
-`Executable(name, description, graph)` serves one agent over A2A. `add_executable_routes` gives each executable its own agent card at `/shin/a2a/<name>/.well-known/agent-card.json` and its JSON-RPC endpoint at `/shin/a2a/<name>`. The card's URL comes from `public_url` in `config.toml`.
+`Executable(name, description, graph)` serves one agent over A2A. `add_executable_routes` gives each executable its own agent card at `/amaya/a2a/<name>/.well-known/agent-card.json` and its JSON-RPC endpoint at `/amaya/a2a/<name>`. The card's URL comes from `public_url` in `config.toml`.
 
 `LanggraphExecutor` runs an executable's graph as one A2A task per message:
 
@@ -75,12 +75,12 @@ A page that is not http or https, or that the browser cannot open, becomes a too
 
 ## Settings
 
-`config.toml` holds every URL, limit and model name. Environment variables with the `SHIN_HARNESS_` prefix override it, and `__` separates nested names, such as `SHIN_HARNESS_APP__PORT`. Secrets live only in `.env`, which git ignores. `.env.example` lists them.
+`config.toml` holds every URL, limit and model name. Environment variables with the `AMAYA_HARNESS_` prefix override it, and `__` separates nested names, such as `AMAYA_HARNESS_APP__PORT`. Secrets live only in `.env`, which git ignores. `.env.example` lists them.
 
 ## Running
 
 From `apps/harness`:
 
 - `uv sync` installs the dependencies.
-- `uv run python -m src.main` starts the server. `GET /shin/health` reports that it is up.
+- `uv run python -m src.main` starts the server. `GET /amaya/health` reports that it is up.
 - `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright` and `uv run pytest` are the checks.
