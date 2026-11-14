@@ -1,4 +1,4 @@
-# Amaya
+# Zumi
 
 - Before changing `apps/harness`, read `apps/harness/docs/architecture/` and `apps/harness/docs/development/`, and update them in the same change.
 - Never add Claude, Anthropic, or any AI assistant as an author or co-author: no `Co-Authored-By` trailers and no AI attribution in commits, PRs or comments.

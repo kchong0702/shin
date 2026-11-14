@@ -25,9 +25,7 @@ def test_every_tool_the_system_prompt_names_is_one_sothoth_has():
 def test_the_app_serves_sothoth_over_a2a(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test")
 
-    card = TestClient(create_app()).get(
-        "/amaya/a2a/sothoth/.well-known/agent-card.json"
-    )
+    card = TestClient(create_app()).get("/zumi/a2a/sothoth/.well-known/agent-card.json")
 
     assert card.json()["name"] == "sothoth"
 

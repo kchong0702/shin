@@ -42,7 +42,7 @@ class AppSettings(BaseModel):
     version: str = "0.1.0"
     """Application's version"""
 
-    route_prefix: str = "/amaya"
+    route_prefix: str = "/zumi"
     """FastAPI router prefix"""
 
     public_url: str = "http://127.0.0.1:8300"
@@ -100,7 +100,7 @@ class AgentSettings(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="AMAYA_HARNESS_",
+        env_prefix="ZUMI_HARNESS_",
         env_nested_delimiter="__",
         env_file=str(_DEFAULT_ENV_FILE),
         env_file_encoding="utf-8",
@@ -157,7 +157,7 @@ class Settings(BaseSettings):
             dotenv_settings,
             TomlConfigSettingsSource(
                 settings_cls,
-                toml_file=os.environ.get("AMAYA_HARNESS_CONFIG", _DEFAULT_TOML),
+                toml_file=os.environ.get("ZUMI_HARNESS_CONFIG", _DEFAULT_TOML),
             ),
             file_secret_settings,
         )

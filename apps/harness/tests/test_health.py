@@ -9,7 +9,7 @@ def test_health():
     container = Container()
     container.executables.override(providers.List())
 
-    response = TestClient(create_app(container)).get("/amaya/health")
+    response = TestClient(create_app(container)).get("/zumi/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"

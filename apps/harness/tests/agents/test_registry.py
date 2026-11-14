@@ -43,7 +43,7 @@ def test_config_toml_lists_agents_as_tables(tmp_path: Path, monkeypatch):
         '[[agents]]\nname = "greeter"\npath = "src/agents/greeter/profile.yaml"\n'
         'family = "openai"\nmodel = "gpt-6-luna"\n'
     )
-    monkeypatch.setenv("AMAYA_HARNESS_CONFIG", str(toml))
+    monkeypatch.setenv("ZUMI_HARNESS_CONFIG", str(toml))
 
     [agent] = Settings().agents
 
@@ -61,7 +61,7 @@ def test_an_agent_on_a_model_the_config_does_not_offer_is_refused(
         '[[agents]]\nname = "greeter"\npath = "p.yaml"\n'
         'family = "openai"\nmodel = "gpt-9"\n'
     )
-    monkeypatch.setenv("AMAYA_HARNESS_CONFIG", str(toml))
+    monkeypatch.setenv("ZUMI_HARNESS_CONFIG", str(toml))
 
     with pytest.raises(ValueError, match="which \\[models\\] does not offer"):
         Settings()
