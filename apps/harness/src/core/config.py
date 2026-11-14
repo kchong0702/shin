@@ -58,6 +58,21 @@ class AppSettings(BaseModel):
     """Uvicorn log level"""
 
 
+class BrowserSettings(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, use_attribute_docstrings=True
+    )
+
+    max_page_chars: int = Field(default=20_000, gt=0)
+    """Most characters of a page's text read_page shows the agent, the rest cut"""
+
+    max_links: int = Field(default=50, gt=0)
+    """Most links of a page read_page shows the agent, in page order"""
+
+    timeout_ms: int = Field(default=30_000, gt=0)
+    """Longest the browser may take to open a page, and to read it once open"""
+
+
 class AgentSettings(BaseModel):
     model_config = ConfigDict(
         extra="forbid", frozen=True, use_attribute_docstrings=True
@@ -98,6 +113,9 @@ class Settings(BaseSettings):
 
     app: AppSettings = Field(default_factory=AppSettings)
     """Application and uvicorn server settings"""
+
+    browser: BrowserSettings = Field(default_factory=BrowserSettings)
+    """Limits on the pages the agents read"""
 
     models: dict[Family, tuple[str, ...]] = {}
     """The models agents can run on, by family, read from config.toml's [models]"""

@@ -39,6 +39,27 @@ An agent is a folder under `src/agents/<name>/` with:
 
 `Container` wires the settings, the agent registry, the `InMemoryTaskStore` that keeps every task, the checkpointer and the `executables` list. To serve a new agent, build it with the container's checkpointer and add its `Executable` to `executables`.
 
+## Browser
+
+Agents read the web through [OpenGCUA](https://github.com/Tongyi-MAI/OpenGCUA)'s Python SDK, `qwen-intelligence-sdk` (import name `mai_ui`). PyPI does not carry it, so `pyproject.toml` pins the v0.3.1 GitHub Release wheels with `[tool.uv.sources]`, one per platform (macOS arm64 and Linux x86_64), and `[tool.uv] environments` limits the lockfile to those two.
+
+Install the browser once on each machine, after `uv sync`. It needs Node 22 or newer:
+
+```
+uv run mu setup browser --engine chromium
+uv run mu doctor browser --engine chromium
+```
+
+`doctor` prints `"state": "ready"` when the browser works.
+
+`read_page` (in `src/agents/sothoth/tools/read_page.py`) starts one `Runtime` per call, so every call gets its own isolated headless Chromium. It opens the page, runs one script in it and parses the result into a `Page` with `Link` items: title, final URL, `document.body.innerText`, and each absolute http or https link once, with its visible text. It returns the title, final URL, the text, and the links as `- text: href` lines, all inside `<page untrusted>`, so the model treats the page as data. The `[browser]` settings in `config.toml` limit it:
+
+- `max_page_chars` cuts the text and ends it with `[cut: N more characters]`.
+- `max_links` limits the links shown.
+- `timeout_ms` limits how long a page may take to open and to read.
+
+A page that is not http or https, or that the browser cannot open, becomes a tool error the model sees, so the run goes on.
+
 ## Settings
 
 `config.toml` holds every URL, limit and model name. Environment variables with the `SHIN_HARNESS_` prefix override it, and `__` separates nested names, such as `SHIN_HARNESS_APP__PORT`. Secrets live only in `.env`, which git ignores. `.env.example` lists them.

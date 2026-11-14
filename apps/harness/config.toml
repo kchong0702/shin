@@ -10,6 +10,11 @@ host = "127.0.0.1"
 port = 8300
 log_level = "info"
 
+[browser]
+max_page_chars = 20000
+max_links = 50
+timeout_ms = 30000
+
 [models]
 glm = ["glm-5.3"]
 claude = ["claude-opus-5-5", "claude-sonnet-5-5"]
