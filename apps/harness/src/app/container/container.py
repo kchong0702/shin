@@ -3,6 +3,7 @@ from dependency_injector import containers, providers
 from langgraph.checkpoint.memory import InMemorySaver
 
 from src.agents import load_agents
+from src.app.container.sothoth import SothothContainer
 from src.core.config import get_settings
 
 
@@ -20,6 +21,11 @@ class Container(containers.DeclarativeContainer):
     """Where agents keep their conversations; pass it to each agent's build, and
     swap in a database saver here"""
 
-    executables = providers.List()
+    sothoth = providers.Container(
+        SothothContainer, registry=registry, checkpointer=checkpointer
+    )
+    """sothoth, the research agent"""
+
+    executables = providers.List(sothoth.executable)
     """Agents served over A2A; add an agent's container above and its Executable
     provider here"""

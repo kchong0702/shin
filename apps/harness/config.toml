@@ -19,3 +19,9 @@ timeout_ms = 30000
 glm = ["glm-5.3"]
 claude = ["claude-opus-5-5", "claude-sonnet-5-5"]
 openai = ["gpt-6-luna"]
+
+[[agents]]
+name = "sothoth"
+path = "src/agents/sothoth/profile.yaml"
+family = "openai"
+model = "gpt-6-luna"
