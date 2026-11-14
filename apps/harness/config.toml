@@ -1,0 +1,7 @@
+[app]
+name = "harness"
+version = "0.1.0"
+route_prefix = "/shin"
+host = "127.0.0.1"
+port = 8300
+log_level = "info"
