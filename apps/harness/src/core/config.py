@@ -1,10 +1,19 @@
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, override
+from typing import Literal, Self, override
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -17,6 +26,9 @@ _DEFAULT_TOML = _ROOT_PATH / "config.toml"
 _DEFAULT_ENV_FILE = _ROOT_PATH / ".env"
 
 load_dotenv(_DEFAULT_ENV_FILE, override=False)
+
+Family = Literal["claude", "glm", "openai"]
+"""A model family, which picks the provider its models run on"""
 
 
 class AppSettings(BaseModel):
@@ -43,6 +55,31 @@ class AppSettings(BaseModel):
     """Uvicorn log level"""
 
 
+class AgentSettings(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, use_attribute_docstrings=True
+    )
+
+    name: str
+    """Agent name, such as sothoth"""
+
+    path: Path
+    """The agent's profile.yaml, relative to the app folder; its folder holds
+    system.md and skills/"""
+
+    family: Family
+    """Model family the model belongs to, such as openai, which picks its provider"""
+
+    model: str
+    """Exact model the agent runs on, such as gpt-6-luna; one [models] offers"""
+
+    @field_validator("path")
+    @classmethod
+    def _from_app_folder(cls, path: Path) -> Path:
+        """Reads a relative path from the app folder"""
+        return path if path.is_absolute() else _ROOT_PATH / path
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="SHIN_HARNESS_",
@@ -58,6 +95,25 @@ class Settings(BaseSettings):
 
     app: AppSettings = Field(default_factory=AppSettings)
     """Application and uvicorn server settings"""
+
+    models: dict[Family, tuple[str, ...]] = {}
+    """The models agents can run on, by family, read from config.toml's [models]"""
+
+    agents: tuple[AgentSettings, ...] = ()
+    """Every agent the app builds, read from config.toml's [[agents]] tables"""
+
+    reasoning_effort: Literal["low", "medium", "high"] = "low"
+    """How hard claude and openai models reason before answering"""
+
+    gateway_url: HttpUrl | None = Field(
+        default=None, validation_alias=AliasChoices("AIGW_BASE_URL", "gateway_url")
+    )
+    """OpenAI-compatible gateway that serves the glm model family"""
+
+    gateway_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("AIGW_API_KEY", "gateway_key")
+    )
+    """Key for the model gateway"""
 
     @classmethod
     @override
@@ -80,6 +136,16 @@ class Settings(BaseSettings):
             ),
             file_secret_settings,
         )
+
+    @model_validator(mode="after")
+    def _agents_run_offered_models(self) -> Self:
+        """Refuses an agent whose model [models] does not offer"""
+        for agent in self.agents:
+            if agent.model not in self.models.get(agent.family, ()):
+                raise ValueError(
+                    f"{agent.name} runs {agent.family} {agent.model}, which [models] does not offer"
+                )
+        return self
 
 
 @lru_cache(maxsize=1)

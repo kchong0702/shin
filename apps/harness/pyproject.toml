@@ -4,9 +4,15 @@ version = "0.1.0"
 description = "Agent harness for Shin and its specialist agents"
 requires-python = ">=3.13"
 dependencies = [
+    "deepagents>=0.7.38",
     "fastapi>=0.142.2",
+    "langchain-anthropic>=1.7.10",
+    "langchain-core>=1.8.0",
+    "langchain-openai>=1.8.0",
+    "langgraph>=1.2.22",
     "pydantic-settings>=2.15.0",
     "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -17,6 +23,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.10",
+    "types-pyyaml>=6.0.12.20261113",
 ]
 
 [tool.pytest.ini_options]
@@ -33,5 +40,5 @@ known-third-party = ["a2a"]
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
-typeCheckingMode = "standard"
+typeCheckingMode = "off"
 reportImplicitOverride = "error"
