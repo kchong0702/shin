@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Agent harness for Shin and its specialist agents"
 requires-python = ">=3.13"
 dependencies = [
+    "a2a-sdk[http-server]>=1.3.0",
     "deepagents>=0.7.38",
+    "dependency-injector>=4.49.1",
     "fastapi>=0.142.2",
     "langchain-anthropic>=1.7.10",
     "langchain-core>=1.8.0",
@@ -32,6 +34,9 @@ pythonpath = ["."]
 addopts = "-ra --strict-markers --strict-config"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff.lint.per-file-ignores]
+"src/app/a2a/executable.py" = ["BLE001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]

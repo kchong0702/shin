@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from src.app.a2a import add_executable_routes
+from src.app.container import Container
 from src.core.config import get_settings
 
 
@@ -8,8 +10,10 @@ def health_check() -> dict[str, str]:
     return {"status": "ok", "version": get_settings().app.version}
 
 
-def create_app() -> FastAPI:
-    """Creates the FastAPI app"""
+def create_app(container: Container | None = None) -> FastAPI:
+    """Creates the FastAPI app serving the container's agents; tests pass a
+    container with overridden providers"""
+    container = container or Container()
     settings = get_settings()
     app = FastAPI(
         title=settings.app.name.upper(),
@@ -21,5 +25,8 @@ def create_app() -> FastAPI:
         path=f"{settings.app.route_prefix}/health",
         endpoint=health_check,
         methods=["GET"],
+    )
+    add_executable_routes(
+        app, container.executables(), container.task_store(), settings.app
     )
     return app

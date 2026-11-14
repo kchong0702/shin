@@ -8,11 +8,13 @@ from deepagents.middleware.skills import SkillsMiddleware
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
 
 from src.agents.registry import Agent
 from src.clients.llm_providers import llm_provider
+from src.core.config import get_settings
 
 
 def _described(tool: BaseTool, descriptions: Mapping[str, str]) -> BaseTool:
@@ -34,13 +36,14 @@ def build_agent(
     skill_tools: Sequence[BaseTool] = (),
     middleware: Sequence[AgentMiddleware] = (),
     model: BaseChatModel | None = None,
+    checkpointer: BaseCheckpointSaver | None = None,
 ) -> CompiledStateGraph:
     """Builds a registered agent as a read-only deep agent, offered each of
-    skill_tools once it reads a skill listing it"""
+    skill_tools once it reads a skill listing it, keeping its runs in checkpointer"""
     backend = FilesystemBackend(root_dir=agent.skills, virtual_mode=True)
     descriptions = agent.profile.tool_description_overrides
 
-    return create_deep_agent(
+    built = create_deep_agent(
         model=model or llm_provider(agent.family, agent.model),
         tools=[_described(tool, descriptions) for tool in tools],
         system_prompt=agent.system_prompt.read_text(),
@@ -71,5 +74,7 @@ def build_agent(
             FilesystemPermission(operations=["write"], paths=["/**"], mode="deny")
         ],
         backend=backend,
+        checkpointer=checkpointer,
         name=agent.name,
     )
+    return built.with_config(recursion_limit=get_settings().recursion_limit)

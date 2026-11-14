@@ -45,6 +45,9 @@ class AppSettings(BaseModel):
     route_prefix: str = "/shin"
     """FastAPI router prefix"""
 
+    public_url: str = "http://127.0.0.1:8300"
+    """Origin clients reach the server at, written into A2A agent cards"""
+
     host: str = "127.0.0.1"
     """Host address to bind the server to"""
 
@@ -104,6 +107,10 @@ class Settings(BaseSettings):
 
     reasoning_effort: Literal["low", "medium", "high"] = "low"
     """How hard claude and openai models reason before answering"""
+
+    recursion_limit: int = Field(default=100, gt=0)
+    """Most graph steps one run may take before it fails; each model call and each
+    tool call is a step"""
 
     gateway_url: HttpUrl | None = Field(
         default=None, validation_alias=AliasChoices("AIGW_BASE_URL", "gateway_url")
