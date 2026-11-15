@@ -1,3 +1,6 @@
+from contextlib import nullcontext
+from functools import partial
+
 from dependency_injector import containers, providers
 
 from src.agents import build_agent
@@ -25,6 +28,6 @@ class SothothContainer(containers.DeclarativeContainer):
         Executable,
         name="sothoth",
         description="Research questions answered by searching the web and reading pages, with every claim cited to its URL",
-        graph=agent,
+        open_graph=providers.Factory(partial, nullcontext, agent),
     )
     """sothoth served over A2A"""

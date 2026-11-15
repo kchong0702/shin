@@ -1,4 +1,5 @@
 import json
+from contextlib import nullcontext
 from pathlib import Path
 
 from dependency_injector import providers
@@ -68,7 +69,7 @@ def _client(model: ScriptedChatModel) -> TestClient:
                 Executable(
                     name="greeter",
                     description="Greets whoever writes to it",
-                    graph=agent,
+                    open_graph=lambda: nullcontext(agent),
                 )
             )
         )

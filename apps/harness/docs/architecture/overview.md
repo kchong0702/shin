@@ -57,15 +57,15 @@ Codenames come from the architecture diagram and are for people only. A tool kee
 
 ## A2A
 
-`Executable(name, description, graph)` serves one agent over A2A. `add_executable_routes` gives each executable its own agent card at `/zumi/a2a/<name>/.well-known/agent-card.json` and its JSON-RPC endpoint at `/zumi/a2a/<name>`. The card's URL comes from `public_url` in `config.toml`.
+`Executable(name, description, open_graph)` serves one agent over A2A. `open_graph` is an async context manager that opens the agent's graph for one run, together with anything the run holds open, such as a browser. It closes them when the run ends, including when the run fails or is cancelled. An agent with nothing to open passes `partial(nullcontext, graph)`. `add_executable_routes` gives each executable its own agent card at `/zumi/a2a/<name>/.well-known/agent-card.json` and its JSON-RPC endpoint at `/zumi/a2a/<name>`. The card's URL comes from `public_url` in `config.toml`.
 
-`LanggraphExecutor` runs an executable's graph as one A2A task per message:
+`LanggraphExecutor` opens the executable's graph and runs it as one A2A task per message:
 
 - It sends the message's text to the agent, in the conversation named by the message's `context_id`. The container's `InMemorySaver` keeps the conversation, so later messages with the same `context_id` continue it.
 - When a tool call starts and ends, it sends a working status with a data part `{"step": {"id", "name", "status"}}`. `status` is `running`, `done` or `failed`. A tool that returns an error message to the model is a `failed` step, and the run goes on.
 - It streams the model's text as the `text` artifact.
 - When the agent finishes, it adds the final answer as an artifact named after the executable and completes the task.
-- It fails the task with a plain reason when the run goes past `recursion_limit` steps, or when a tool or the graph raises.
+- It fails the task with a plain reason when the run goes past `recursion_limit` steps, or when opening the graph, a tool or the graph raises.
 
 `Container` wires the settings, the agent registry, the `InMemoryTaskStore` that keeps every task, the checkpointer and the `executables` list. To serve a new agent, build it with the container's checkpointer and add its `Executable` to `executables`.
 
