@@ -8,6 +8,7 @@ dependencies = [
     "deepagents>=0.7.38",
     "dependency-injector>=4.49.1",
     "fastapi>=0.142.2",
+    "httpx>=0.28.1",
     "langchain-anthropic>=1.7.10",
     "langchain-core>=1.8.0",
     "langchain-openai>=1.8.0",
@@ -33,7 +34,6 @@ qwen-intelligence-sdk = [
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",

@@ -331,6 +331,7 @@ dependencies = [
     { name = "deepagents" },
     { name = "dependency-injector" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "langchain-anthropic" },
     { name = "langchain-core" },
     { name = "langchain-openai" },
@@ -345,7 +346,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -359,6 +359,7 @@ requires-dist = [
     { name = "deepagents", specifier = ">=0.7.38" },
     { name = "dependency-injector", specifier = ">=4.49.1" },
     { name = "fastapi", specifier = ">=0.142.2" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-anthropic", specifier = ">=1.7.10" },
     { name = "langchain-core", specifier = ">=1.8.0" },
     { name = "langchain-openai", specifier = ">=1.8.0" },
@@ -374,7 +375,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pyright", specifier = ">=1.1.414" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
