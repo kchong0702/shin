@@ -3,7 +3,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from src.agents.sothoth.tools import traversal
+from src.agents.sothoth.tools import read_page
 from src.core.config import get_settings
 
 LONG_TEXT = "word " * 100
@@ -22,7 +22,7 @@ def limits(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 async def test_a_page_comes_back_as_untrusted_data_with_its_title_and_address(
     site: str,
 ):
-    result = await traversal.ainvoke({"url": f"{site}/index.html"})
+    result = await read_page.ainvoke({"url": f"{site}/index.html"})
 
     assert result.startswith("<page untrusted>\n")
     assert result.endswith("\n</page>")
@@ -32,14 +32,14 @@ async def test_a_page_comes_back_as_untrusted_data_with_its_title_and_address(
 
 
 async def test_a_redirect_reports_the_address_it_ended_on(site: str):
-    result = await traversal.ainvoke({"url": f"{site}/moved.html"})
+    result = await read_page.ainvoke({"url": f"{site}/moved.html"})
 
     assert f"URL: {site}/index.html" in result
 
 
 @pytest.mark.usefixtures("limits")
 async def test_text_past_the_limit_is_cut_and_says_how_much(site: str):
-    result = await traversal.ainvoke({"url": f"{site}/index.html"})
+    result = await read_page.ainvoke({"url": f"{site}/index.html"})
 
     shown = result.split("Links:")[0]
     assert "[cut: " in shown
@@ -49,7 +49,7 @@ async def test_text_past_the_limit_is_cut_and_says_how_much(site: str):
 
 
 async def test_links_come_back_absolute_with_their_text_each_address_once(site: str):
-    result = await traversal.ainvoke({"url": f"{site}/index.html"})
+    result = await read_page.ainvoke({"url": f"{site}/index.html"})
 
     links = result.split("Links:\n")[1].removesuffix("\n</page>").splitlines()
     assert links == [
@@ -61,7 +61,7 @@ async def test_links_come_back_absolute_with_their_text_each_address_once(site: 
 
 @pytest.mark.usefixtures("limits")
 async def test_links_past_the_limit_are_left_out(site: str):
-    result = await traversal.ainvoke({"url": f"{site}/index.html"})
+    result = await read_page.ainvoke({"url": f"{site}/index.html"})
 
     links = result.split("Links:\n")[1].removesuffix("\n</page>").splitlines()
     assert links == [
@@ -75,12 +75,12 @@ async def test_a_page_that_cannot_be_reached_is_an_error_the_model_sees():
         closed.bind(("127.0.0.1", 0))
         port = closed.getsockname()[1]
 
-    result = await traversal.ainvoke({"url": f"http://127.0.0.1:{port}/"})
+    result = await read_page.ainvoke({"url": f"http://127.0.0.1:{port}/"})
 
     assert result.startswith(f"Could not read http://127.0.0.1:{port}/")
 
 
 async def test_a_page_that_is_not_http_is_refused_without_opening_it():
-    result = await traversal.ainvoke({"url": "file:///etc/hosts"})
+    result = await read_page.ainvoke({"url": "file:///etc/hosts"})
 
     assert result == "Could not read file:///etc/hosts: only http and https pages open"

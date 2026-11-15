@@ -84,6 +84,9 @@ async def _read_page(url: str) -> str:
     return f"<page untrusted>\n{body.replace('</page', '&lt;/page')}\n</page>"
 
 
-traversal = StructuredTool.from_function(
-    coroutine=_read_page, name="read_page", handle_tool_error=True
+read_page = StructuredTool.from_function(
+    coroutine=_read_page,
+    name="read_page",
+    handle_tool_error=True,
+    metadata={"codename": "Traversal"},
 )
