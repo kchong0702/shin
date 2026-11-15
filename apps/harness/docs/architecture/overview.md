@@ -31,12 +31,12 @@ Sothoth is the research agent, served at `/zumi/a2a/sothoth` and registered in `
 
 | Name           | Kind       | Codename   | Does                                                                 |
 | -------------- | ---------- | ---------- | -------------------------------------------------------------------- |
-| `read_page`    | Tool       | Traversal  | Reads one page in a browser (see [Browser](#browser))                 |
+| `browser_*`    | Tools      | Traversal  | Browse pages in a real browser through Playwright MCP (see [Browser](#browser)) |
 | `find-sources` | Skill      | Divination | Says when to search and which search to use                          |
 | `web_search`   | Skill tool | Scrying    | Keyword search on Tavily, for facts, news and exact names (see [Search](#search)) |
 | `exa_search`   | Skill tool | Augury     | Search by meaning on Exa, for papers, companies, people and topics (see [Search](#search)) |
 
-Codenames come from the architecture diagram and are for people only. A tool keeps its codename in `metadata={"codename": ...}`, which LangChain never sends to the model. A skill keeps it in its `SKILL.md` frontmatter under `metadata.codename`, which the skill listing in the system prompt leaves out; the model sees only each skill's name, description and path.
+Codenames come from the architecture diagram and are for people only. A tool keeps its codename in `metadata={"codename": ...}`, which LangChain never sends to the model. Every browser tool carries Traversal. A skill keeps it in its `SKILL.md` frontmatter under `metadata.codename`, which the skill listing in the system prompt leaves out; the model sees only each skill's name, description and path.
 
 `system.md` holds what applies to every question. It tells Sothoth to:
 
@@ -51,9 +51,9 @@ Codenames come from the architecture diagram and are for people only. A tool kee
 - `web_search` when the question names something: a product, version, error, person, company, news or a fact,
 - `exa_search` when it describes something, with category publication, company or people,
 - both for broad research,
-- cite page text, and open a snippet with `read_page` before citing it.
+- cite page text, and open a snippet with `browser_navigate` before citing it.
 
-`src/app/container/sothoth.py` builds the agent with `tools=(read_page,)`, `skill_tools=(web_search, exa_search)` and the container's checkpointer, and serves it as the `Executable` named `sothoth`. `tests/agents/sothoth/test_sothoth.py` checks that `system.md` names only Sothoth's tools, that each skill names only those and the tools it includes, and that the search tools appear only after Sothoth reads `find-sources`.
+`open_sothoth` in `src/app/container/sothoth.py` opens a browser for one run and builds the agent with the browser tools, `skill_tools=(web_search, exa_search)` and the container's checkpointer. The `Executable` named `sothoth` serves it, so each A2A message gets its own browser, closed when the run ends. Because the tools come from the browser session, the graph is built per run; the checkpointer still carries the conversation across runs. `tests/agents/sothoth/test_sothoth.py` checks that `system.md` names only browser tools, that each skill names only those and the tools it includes, that the search tools appear only after Sothoth reads `find-sources`, and, against a real Playwright MCP server and a local page, that Sothoth gets exactly the allowed browser tools and that what they return is inside `<page untrusted>`.
 
 ## A2A
 
@@ -88,24 +88,26 @@ docker compose up -d
 
 ## Browser
 
-Agents read the web through [OpenGCUA](https://github.com/Tongyi-MAI/OpenGCUA)'s Python SDK, `qwen-intelligence-sdk` (import name `mai_ui`). PyPI does not carry it, so `pyproject.toml` pins the v0.3.1 GitHub Release wheels with `[tool.uv.sources]`, one per platform (macOS arm64 and Linux x86_64), and `[tool.uv] environments` limits the lockfile to those two. The pinned wheels are for Python 3.13, so `requires-python` is `==3.13.*`.
+Agents browse with Microsoft's [Playwright MCP](https://github.com/microsoft/playwright-mcp) server, pinned to `@playwright/mcp@0.0.85`, through [`langchain-mcp-adapters`](https://github.com/langchain-ai/langchain-mcp-adapters). Playwright MCP drives the browser; the model never writes browser code. `browser_snapshot` returns the page as an outline of its text, links and controls, each with a ref such as `e12`, and actions such as `browser_click` and `browser_type` take that ref.
 
-Install the browser once on each machine, after `uv sync`. It needs Node 22 or newer:
+`open_browser` (in `src/agents/sothoth/tools/browser.py`) opens one MCP session and yields its tools. The adapter would otherwise open a new session for every tool call, which forgets the page between calls, so the session stays open for the whole run. It also:
 
-```
-uv run mu setup browser --engine chromium
-uv run mu doctor browser --engine chromium
-```
+- offers only the tools in `BROWSER_TOOLS`: navigate, go back, snapshot, find, click, type, press a key, select an option, hover, wait, tabs and dialogs. The rest run JavaScript or Playwright code (`browser_run_code_unsafe` is remote code execution on the server), upload files, read the network or take screenshots.
+- drops any `filename` argument, so `browser_snapshot` and `browser_find` return their output instead of writing files on the server's machine.
+- wraps each result's text in `<page untrusted>`, so the model treats the page as data.
 
-`doctor` prints `"state": "ready"` when the browser works.
+Playwright MCP runs with `--snapshot-mode none`: actions return only the page's URL and title, and the model calls `browser_snapshot` when it needs to see the page. With the default mode, actions save their snapshot to a file the model can't read. Playwright MCP writes console logs to `.playwright-mcp/` in its working folder, which git ignores.
 
-`read_page` (in `src/agents/sothoth/tools/read_page.py`) starts one `Runtime` per call, so every call gets its own isolated headless Chromium. It opens the page, runs one script in it and parses the result into a `Page` with `Link` items: title, final URL, `document.body.innerText`, and each absolute http or https link once, with its visible text. It returns the title, final URL, the text, and the links as `- text: href` lines, all inside `<page untrusted>`, so the model treats the page as data. The `[browser]` settings in `config.toml` limit it:
+`[browser]` in `config.toml` says where Playwright MCP runs, so the browser can be on any machine:
 
-- `max_page_chars` cuts the text and ends it with `[cut: N more characters]`.
-- `max_links` limits the links shown.
-- `timeout_ms` limits how long a page may take to open and to read.
+- **Started by the harness** (the default): `transport = "stdio"` with the `npx` command and arguments. It needs Node 22 or newer. Each run starts its own Playwright MCP and headless Chromium, with an in-memory profile (`--isolated`).
+- **A browser that is already running**, such as Chrome inside a desktop app: add `--cdp-endpoint http://host:9222` to `args`. Start that browser with `--remote-debugging-port=9222`.
+- **Your own signed-in Chrome**: add `--extension` to `args` and install the Playwright extension in Chrome.
+- **Another machine**: run `npx @playwright/mcp@0.0.85 --isolated --snapshot-mode none --port 8931 --host <address>` on the machine with the browser, and set `transport = "streamable_http"` and `url = "http://<address>:8931/mcp"`. Each run opens its own session, which gets its own browser context, so two runs never share a page. Bind it to a private address, such as a Tailscale one; anyone who can reach the port can drive the browser.
 
-A page that is not http or https, or that the browser cannot open, becomes a tool error the model sees, so the run goes on.
+A browser launched by Playwright still looks automated to sites, so search engines and sites with bot protection may block it. Your own Chrome through `--extension` gets past more of them, but nothing here gets past CAPTCHAs.
+
+The main agent and the general-purpose subagent it starts with `task` share the run's one browser, and Playwright MCP acts on one current tab. Subagents browsing at the same time would act on the same tab.
 
 ## Settings
 
@@ -115,7 +117,7 @@ A page that is not http or https, or that the browser cannot open, becomes a too
 
 From `apps/harness`:
 
-- `uv sync` installs the dependencies.
+- `uv sync` installs the dependencies. The browser needs Node 22 or newer for `npx`.
 - `docker compose up -d` starts SearXNG (see [Search](#search)).
 - `uv run python -m src.main` starts the server. `GET /zumi/health` reports that it is up.
 - `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright` and `uv run pytest` are the checks.

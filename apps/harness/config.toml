@@ -11,9 +11,9 @@ port = 8300
 log_level = "info"
 
 [browser]
-max_page_chars = 20000
-max_links = 50
-timeout_ms = 30000
+transport = "stdio"
+command = "npx"
+args = ["-y", "@playwright/mcp@0.0.85", "--headless", "--isolated", "--snapshot-mode", "none"]
 
 [search]
 tavily_url = "https://api.tavily.com"

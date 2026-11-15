@@ -1,4 +1,4 @@
-from src.agents.sothoth.tools.read_page import read_page
+from src.agents.sothoth.tools.browser import BROWSER_TOOLS, open_browser
 from src.agents.sothoth.tools.search import exa_search, web_search
 
-__all__ = ["exa_search", "read_page", "web_search"]
+__all__ = ["BROWSER_TOOLS", "exa_search", "open_browser", "web_search"]

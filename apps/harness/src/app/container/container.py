@@ -22,7 +22,10 @@ class Container(containers.DeclarativeContainer):
     swap in a database saver here"""
 
     sothoth = providers.Container(
-        SothothContainer, registry=registry, checkpointer=checkpointer
+        SothothContainer,
+        registry=registry,
+        checkpointer=checkpointer,
+        browser=settings.provided.browser,
     )
     """sothoth, the research agent"""
 

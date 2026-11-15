@@ -58,19 +58,40 @@ class AppSettings(BaseModel):
     """Uvicorn log level"""
 
 
-class BrowserSettings(BaseModel):
+class BrowserCommand(BaseModel):
     model_config = ConfigDict(
         extra="forbid", frozen=True, use_attribute_docstrings=True
     )
 
-    max_page_chars: int = Field(default=20_000, gt=0)
-    """Most characters of a page's text read_page shows the agent, the rest cut"""
+    transport: Literal["stdio"] = "stdio"
+    """Start Playwright MCP for each run and talk to it over stdin and stdout"""
 
-    max_links: int = Field(default=50, gt=0)
-    """Most links of a page read_page shows the agent, in page order"""
+    command: str = "npx"
+    """The program that starts Playwright MCP"""
 
-    timeout_ms: int = Field(default=30_000, gt=0)
-    """Longest the browser may take to open a page, and to read it once open"""
+    args: tuple[str, ...] = (
+        "-y",
+        "@playwright/mcp@0.0.85",
+        "--headless",
+        "--isolated",
+        "--snapshot-mode",
+        "none",
+    )
+    """Playwright MCP's arguments, which pick the browser it drives, such as
+    --cdp-endpoint for a Chrome that is already running"""
+
+
+class BrowserServer(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, use_attribute_docstrings=True
+    )
+
+    transport: Literal["streamable_http"]
+    """Connect to a Playwright MCP server that is already running, such as one on the
+    machine whose browser it drives"""
+
+    url: str
+    """The server's MCP endpoint, such as http://browser-host:8931/mcp"""
 
 
 class SearchSettings(BaseModel):
@@ -139,8 +160,10 @@ class Settings(BaseSettings):
     app: AppSettings = Field(default_factory=AppSettings)
     """Application and uvicorn server settings"""
 
-    browser: BrowserSettings = Field(default_factory=BrowserSettings)
-    """Limits on the pages the agents read"""
+    browser: BrowserCommand | BrowserServer = Field(
+        default_factory=BrowserCommand, discriminator="transport"
+    )
+    """How the agents reach Playwright MCP, which drives their browser"""
 
     search: SearchSettings = Field(default_factory=SearchSettings)
     """The web search services and limits on their results"""

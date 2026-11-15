@@ -10,7 +10,7 @@ metadata:
 
 ## With a URL
 
-Read the page with `read_page` first. Search only when it doesn't answer the question, or to find a primary source it mentions without linking.
+Open the page with `browser_navigate` first. Search only when it doesn't answer the question, or to find a primary source it mentions without linking.
 
 ## Which search
 
@@ -37,5 +37,5 @@ When a search finds little, try a few differently worded searches. When a search
 Each result has its title, its URL, and either its page text or only a snippet.
 
 - Cite page text directly.
-- Never cite a snippet. Open the page with `read_page` first.
+- Never cite a snippet. Open the page with `browser_navigate` first.
 - When page text was cut and the missing part could matter, open the page.
