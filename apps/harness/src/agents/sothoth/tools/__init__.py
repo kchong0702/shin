@@ -1,3 +1,3 @@
-from src.agents.sothoth.tools.read_page import read_page
+from src.agents.sothoth.tools.traversal import traversal
 
-__all__ = ["read_page"]
+__all__ = ["traversal"]

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from src.agents import build_agent, load_agents
-from src.agents.sothoth.tools import read_page
+from src.agents.sothoth.tools import traversal
 from src.app.app import create_app
 from src.app.container import Container
 from src.core.config import get_settings
@@ -48,7 +48,7 @@ async def test_sothoth_reads_a_page_and_answers_from_it(site: str):
         ]
     )
 
-    result = await build_agent(agent, tools=(read_page,), model=model).ainvoke(
+    result = await build_agent(agent, tools=(traversal,), model=model).ainvoke(
         {"messages": [HumanMessage("What are the field notes called?")]}
     )
 

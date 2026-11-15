@@ -27,7 +27,7 @@ An agent is a folder under `src/agents/<name>/` with:
 
 ## Sothoth
 
-Sothoth is the research agent, served at `/zumi/a2a/sothoth` and registered in `config.toml` on `openai` `gpt-6-luna`. It answers research questions by reading web pages with its one tool, `read_page`, which lives in `src/agents/sothoth/tools/` because only Sothoth uses it (see [Browser](#browser)). Its `system.md` tells it to:
+Sothoth is the research agent, served at `/zumi/a2a/sothoth` and registered in `config.toml` on `openai` `gpt-6-luna`. It answers research questions by reading web pages with its one tool, Traversal, which lives in `src/agents/sothoth/tools/` because only Sothoth uses it (see [Browser](#browser)). Tools keep the names from the architecture diagram in code and docs, and the model sees each one by its `name`, so Traversal is `read_page` to Sothoth. Its `system.md` tells it to:
 
 - follow links to primary sources,
 - cite the URL each claim came from,
@@ -36,7 +36,7 @@ Sothoth is the research agent, served at `/zumi/a2a/sothoth` and registered in `
 
 Sothoth has no search tool yet. It starts from the URLs it was given and follows links from the pages it reads. Search engines block headless Chromium (DuckDuckGo serves a block page, Bing an empty results page), so a search tool is the next component.
 
-`src/app/container/sothoth.py` builds the agent with `tools=(read_page,)` and the container's checkpointer, and serves it as the `Executable` named `sothoth`. `tests/agents/sothoth/test_sothoth.py` checks that every tool `system.md` names in backticks is one Sothoth has, so the prompt and the code stay in step.
+`src/app/container/sothoth.py` builds the agent with `tools=(traversal,)` and the container's checkpointer, and serves it as the `Executable` named `sothoth`. `tests/agents/sothoth/test_sothoth.py` checks that every tool `system.md` names in backticks is one Sothoth has, so the prompt and the code stay in step.
 
 ## A2A
 
@@ -65,7 +65,7 @@ uv run mu doctor browser --engine chromium
 
 `doctor` prints `"state": "ready"` when the browser works.
 
-`read_page` (in `src/agents/sothoth/tools/read_page.py`) starts one `Runtime` per call, so every call gets its own isolated headless Chromium. It opens the page, runs one script in it and parses the result into a `Page` with `Link` items: title, final URL, `document.body.innerText`, and each absolute http or https link once, with its visible text. It returns the title, final URL, the text, and the links as `- text: href` lines, all inside `<page untrusted>`, so the model treats the page as data. The `[browser]` settings in `config.toml` limit it:
+Traversal (in `src/agents/sothoth/tools/traversal.py`, `read_page` to the model) starts one `Runtime` per call, so every call gets its own isolated headless Chromium. It opens the page, runs one script in it and parses the result into a `Page` with `Link` items: title, final URL, `document.body.innerText`, and each absolute http or https link once, with its visible text. It returns the title, final URL, the text, and the links as `- text: href` lines, all inside `<page untrusted>`, so the model treats the page as data. The `[browser]` settings in `config.toml` limit it:
 
 - `max_page_chars` cuts the text and ends it with `[cut: N more characters]`.
 - `max_links` limits the links shown.

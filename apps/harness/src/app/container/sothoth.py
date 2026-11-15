@@ -1,7 +1,7 @@
 from dependency_injector import containers, providers
 
 from src.agents import build_agent
-from src.agents.sothoth.tools import read_page
+from src.agents.sothoth.tools import traversal
 from src.app.a2a import Executable
 
 
@@ -15,7 +15,7 @@ class SothothContainer(containers.DeclarativeContainer):
     agent = providers.Singleton(
         build_agent,
         agent=registry.provided["sothoth"],
-        tools=(read_page,),
+        tools=(traversal,),
         checkpointer=checkpointer,
     )
     """The sothoth agent, built once"""
