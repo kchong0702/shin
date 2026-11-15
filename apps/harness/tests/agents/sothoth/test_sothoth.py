@@ -19,7 +19,7 @@ def test_every_tool_the_system_prompt_names_is_one_sothoth_has():
 
     named = set(re.findall(r"`(\w+)`", agent.system_prompt.read_text()))
 
-    assert named == tools == {"read_page"}
+    assert named == tools == {"web_search", "exa_search", "read_page"}
 
 
 def test_the_app_serves_sothoth_over_a2a(monkeypatch: pytest.MonkeyPatch):

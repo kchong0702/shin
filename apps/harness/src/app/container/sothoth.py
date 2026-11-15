@@ -1,7 +1,7 @@
 from dependency_injector import containers, providers
 
 from src.agents import build_agent
-from src.agents.sothoth.tools import read_page
+from src.agents.sothoth.tools import exa_search, read_page, web_search
 from src.app.a2a import Executable
 
 
@@ -15,7 +15,7 @@ class SothothContainer(containers.DeclarativeContainer):
     agent = providers.Singleton(
         build_agent,
         agent=registry.provided["sothoth"],
-        tools=(read_page,),
+        tools=(web_search, exa_search, read_page),
         checkpointer=checkpointer,
     )
     """The sothoth agent, built once"""
@@ -23,7 +23,7 @@ class SothothContainer(containers.DeclarativeContainer):
     executable = providers.Singleton(
         Executable,
         name="sothoth",
-        description="Research questions answered by reading web pages, with every claim cited to its URL",
+        description="Research questions answered by searching the web and reading pages, with every claim cited to its URL",
         graph=agent,
     )
     """sothoth served over A2A"""
