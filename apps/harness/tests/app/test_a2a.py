@@ -1,12 +1,16 @@
+import asyncio
 import json
-from contextlib import nullcontext
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from pathlib import Path
 
+import pytest
 from dependency_injector import providers
 from fastapi.testclient import TestClient
 from httpx import Response
 from langchain_core.messages import AIMessage
 from langchain_core.tools import StructuredTool, ToolException, tool
+from langgraph.graph.state import CompiledStateGraph
 
 from src.agents import Agent, build_agent
 from src.app.a2a import Executable
@@ -55,7 +59,22 @@ def _call(name: str) -> AIMessage:
     )
 
 
-def _client(model: ScriptedChatModel) -> TestClient:
+@asynccontextmanager
+async def _in_task_group(
+    graph: CompiledStateGraph,
+) -> AsyncIterator[CompiledStateGraph]:
+    """Opens graph inside two task groups, which wrap the run's errors in nested
+    exception groups, as an MCP session does"""
+    async with asyncio.TaskGroup(), asyncio.TaskGroup():
+        yield graph
+
+
+def _client(
+    model: ScriptedChatModel,
+    open_graph: Callable[
+        [CompiledStateGraph], AbstractAsyncContextManager[CompiledStateGraph]
+    ] = nullcontext,
+) -> TestClient:
     container = Container()
     agent = build_agent(
         Agent.load(GREETER),
@@ -69,7 +88,7 @@ def _client(model: ScriptedChatModel) -> TestClient:
                 Executable(
                     name="greeter",
                     description="Greets whoever writes to it",
-                    open_graph=lambda: nullcontext(agent),
+                    open_graph=lambda: open_graph(agent),
                 )
             )
         )
@@ -186,19 +205,21 @@ def test_a_tool_error_the_model_sees_is_a_failed_step_and_the_run_goes_on():
     assert events[-1]["statusUpdate"]["status"]["state"] == "TASK_STATE_COMPLETED"
 
 
-def test_a_tool_that_raises_fails_the_task_with_its_reason():
+@pytest.mark.parametrize("open_graph", [nullcontext, _in_task_group])
+def test_a_tool_that_raises_fails_the_task_with_its_reason(open_graph):
     model = ScriptedChatModel(replies=[_call("look_up_age")])
 
-    task = _say(_client(model), "Greet Lovelace")
+    task = _say(_client(model, open_graph), "Greet Lovelace")
 
     assert task["status"]["state"] == "TASK_STATE_FAILED"
     assert "Registry is down" in task["status"]["message"]["parts"][0]["text"]
 
 
-def test_an_agent_that_never_answers_fails_the_task_at_the_recursion_limit():
+@pytest.mark.parametrize("open_graph", [nullcontext, _in_task_group])
+def test_an_agent_that_never_answers_fails_the_task_at_the_recursion_limit(open_graph):
     model = ScriptedChatModel(replies=[_call("look_up_name")])
 
-    task = _say(_client(model), "Greet Lovelace")
+    task = _say(_client(model, open_graph), "Greet Lovelace")
 
     assert task["status"]["state"] == "TASK_STATE_FAILED"
     assert task["status"]["message"]["parts"][0]["text"] == (

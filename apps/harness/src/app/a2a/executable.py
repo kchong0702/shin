@@ -66,6 +66,13 @@ def _steps(task: TaskPayload | TaskResultPayload) -> list[Step]:
     ]
 
 
+def _first_error(error: BaseException) -> BaseException:
+    """The first error inside the exception groups wrapping error"""
+    if isinstance(error, BaseExceptionGroup):
+        return _first_error(error.exceptions[0])
+    return error
+
+
 def _reason(updater: TaskUpdater, text: str) -> Message:
     """An agent message carrying the reason a run stopped"""
     return updater.new_agent_message([new_text_part(text)])
@@ -122,16 +129,17 @@ class LanggraphExecutor(AgentExecutor):
                                     [new_data_part({"step": step.model_dump()})]
                                 ),
                             )
-        except GraphRecursionError:
+        except* GraphRecursionError:
             await updater.failed(_reason(updater, "Ran out of steps before finishing"))
-            return
-        except Exception as error:
-            await updater.failed(_reason(updater, f"The run failed: {error}"))
-            return
-        await updater.add_artifact(
-            [new_text_part(result["messages"][-1].text)], name=self.executable.name
-        )
-        await updater.complete()
+        except* Exception as errors:
+            await updater.failed(
+                _reason(updater, f"The run failed: {_first_error(errors)}")
+            )
+        else:
+            await updater.add_artifact(
+                [new_text_part(result["messages"][-1].text)], name=self.executable.name
+            )
+            await updater.complete()
 
     @override
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:

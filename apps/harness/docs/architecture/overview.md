@@ -65,7 +65,7 @@ Codenames come from the architecture diagram and are for people only. A tool kee
 - When a tool call starts and ends, it sends a working status with a data part `{"step": {"id", "name", "status"}}`. `status` is `running`, `done` or `failed`. A tool that returns an error message to the model is a `failed` step, and the run goes on.
 - It streams the model's text as the `text` artifact.
 - When the agent finishes, it adds the final answer as an artifact named after the executable and completes the task.
-- It fails the task with a plain reason when the run goes past `recursion_limit` steps, or when opening the graph, a tool or the graph raises.
+- It fails the task with a plain reason when the run goes past `recursion_limit` steps, or when opening the graph, a tool or the graph raises. Whatever the run holds open may wrap the error in exception groups, as an MCP session's task groups do, so it catches with `except*` and reports the innermost error.
 
 `Container` wires the settings, the agent registry, the `InMemoryTaskStore` that keeps every task, the checkpointer and the `executables` list. To serve a new agent, build it with the container's checkpointer and add its `Executable` to `executables`.
 
