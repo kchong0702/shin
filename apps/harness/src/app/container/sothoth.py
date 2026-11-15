@@ -15,7 +15,8 @@ class SothothContainer(containers.DeclarativeContainer):
     agent = providers.Singleton(
         build_agent,
         agent=registry.provided["sothoth"],
-        tools=(web_search, exa_search, read_page),
+        tools=(read_page,),
+        skill_tools=(web_search, exa_search),
         checkpointer=checkpointer,
     )
     """The sothoth agent, built once"""
