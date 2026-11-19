@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:17.6-alpine
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: zumi
+      POSTGRES_DB: zumi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres:
