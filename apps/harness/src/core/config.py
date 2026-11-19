@@ -91,6 +91,32 @@ class BrowserServer(BaseModel):
     """The server's MCP endpoint, such as http://browser-host:8931/mcp"""
 
 
+class SearchSettings(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, use_attribute_docstrings=True
+    )
+
+    tavily_url: str = "https://api.tavily.com"
+    """Tavily's API, which web_search asks first"""
+
+    exa_url: str = "https://api.exa.ai"
+    """Exa's API, which exa_search asks first"""
+
+    searxng_url: str = "http://127.0.0.1:8310"
+    """The SearXNG server compose.yaml runs, which both search tools ask when their
+    own service has no key or fails"""
+
+    max_results: int = Field(default=5, gt=0)
+    """Most results a search shows the agent"""
+
+    max_content_chars: int = Field(default=4_000, gt=0)
+    """Most characters of each result's text a search shows the agent, the rest cut"""
+
+    timeout_s: float = Field(default=20, gt=0)
+    """Longest wait on any one network step of a search service, such as connecting
+    or reading its answer"""
+
+
 class AgentSettings(BaseModel):
     model_config = ConfigDict(
         extra="forbid", frozen=True, use_attribute_docstrings=True
@@ -137,6 +163,9 @@ class Settings(BaseSettings):
     )
     """How the agents reach Playwright MCP, which drives their browser"""
 
+    search: SearchSettings = Field(default_factory=SearchSettings)
+    """The web search services and limits on their results"""
+
     models: dict[Family, tuple[str, ...]] = {}
     """The models agents can run on, by family, read from config.toml's [models]"""
 
@@ -165,6 +194,16 @@ class Settings(BaseSettings):
         default=None, validation_alias=AliasChoices("AIGW_API_KEY", "gateway_key")
     )
     """Key for the model gateway"""
+
+    tavily_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("TAVILY_API_KEY", "tavily_api_key")
+    )
+    """Key for Tavily; web_search skips Tavily without it"""
+
+    exa_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("EXA_API_KEY", "exa_api_key")
+    )
+    """Key for Exa; exa_search skips Exa without it"""
 
     @classmethod
     @override
