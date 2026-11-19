@@ -1,0 +1,15 @@
+reasoning_effort = "low"
+recursion_limit = 100
+
+[app]
+name = "harness"
+version = "0.1.0"
+route_prefix = "/zumi"
+host = "127.0.0.1"
+port = 8300
+log_level = "info"
+
+[models]
+glm = ["glm-5.3"]
+claude = ["claude-opus-5-5", "claude-sonnet-5-5"]
+openai = ["gpt-6-luna"]
