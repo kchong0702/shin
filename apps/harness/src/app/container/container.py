@@ -2,6 +2,7 @@ from dependency_injector import containers, providers
 from langgraph.checkpoint.memory import InMemorySaver
 
 from src.agents import load_agents
+from src.app.container.sothoth import SothothContainer
 from src.core.config import get_settings
 
 
@@ -15,5 +16,13 @@ class Container(containers.DeclarativeContainer):
     checkpointer = providers.Singleton(InMemorySaver)
     """Where agents keep each user's lifelong conversation"""
 
-    agents = providers.List()
+    sothoth = providers.Container(
+        SothothContainer,
+        settings=settings,
+        registry=registry,
+        checkpointer=checkpointer,
+    )
+    """sothoth, the research agent"""
+
+    agents = providers.List(sothoth.served)
     """Agents served over WebSocket"""

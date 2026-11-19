@@ -9,7 +9,18 @@ host = "127.0.0.1"
 port = 8300
 log_level = "info"
 
+[browser]
+transport = "stdio"
+command = "npx"
+args = ["-y", "@playwright/mcp@0.0.85", "--headless", "--isolated", "--snapshot-mode", "none"]
+
 [models]
 glm = ["glm-5.3"]
 claude = ["claude-opus-5-5", "claude-sonnet-5-5"]
 openai = ["gpt-6-luna"]
+
+[[agents]]
+name = "sothoth"
+path = "src/agents/sothoth/profile.yaml"
+family = "openai"
+model = "gpt-6-luna"
