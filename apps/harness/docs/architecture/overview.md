@@ -9,7 +9,7 @@ The harness serves Zumi's agents over WebSocket, speaking the [AG-UI](https://do
 | `src/app`     | The FastAPI app, the dependency-injector `Container`, and the WebSocket routes that serve each agent at `/zumi/ws/<name>` |
 | `src/core`    | Settings, read from `config.toml` and the environment                                          |
 | `src/agents`  | One folder per agent: `profile.yaml`, `system.md`, optional `skills/` and `tools/`. Also the registry and `build_agent` |
-| `src/clients` | The LLM providers                                                                              |
+| `src/clients` | The LLM providers and the Postgres checkpointer                                                |
 
 ## Agents
 
@@ -29,7 +29,7 @@ An agent is a folder under `src/agents/<name>/` with:
 
 ## Serving agents
 
-`add_agent_routes` serves each `ServedAgent(name, open_graph)` over a WebSocket at `/zumi/ws/<name>`. `open_graph` is an async context manager that opens the agent's graph for one run, together with anything the run holds open, such as a browser. It closes them when the run ends, including when the run fails or the client disconnects.
+`add_agent_routes` serves each `ServedAgent(name, open_graph)` over a WebSocket at `/zumi/ws/<name>`. `open_graph` is an async context manager that opens the agent's graph for one run, together with anything the run holds open, such as a browser. It closes them when the run ends, including when the run fails or the client disconnects. Build the graph inside `open_graph` and ask the checkpointer's provider for the saver there: a graph built earlier would keep the in-memory saver the app starts with.
 
 The only client is the channel service, not a browser, so a connection that sends an `Origin` header is refused before it opens, which the client sees as HTTP 403. The channel service opens one socket per user it is serving. On it, a client sends AG-UI `RunAgentInput`s and gets back each run's AG-UI events. [`ag-ui-langgraph`](https://pypi.org/project/ag-ui-langgraph/)'s `LangGraphAgent` turns the LangGraph run into those events:
 
@@ -41,7 +41,7 @@ The only client is the channel service, not a browser, so a connection that send
 
 `LangGraphAgent` would otherwise run the graph at LangGraph's default of 25 steps, so it gets the graph's own config, which carries `recursion_limit`.
 
-The container's `InMemorySaver` keeps every conversation until the server stops.
+The checkpointer keeps every conversation. With `POSTGRES_URL` set, the app opens an `AsyncPostgresSaver` on that Postgres when it starts, creates its tables and swaps it into the container for as long as it runs, so conversations survive restarts. Its pool checks each connection before lending it, so a Postgres restart doesn't fail the next runs. Without `POSTGRES_URL`, the container's `InMemorySaver` keeps them until the server stops; the tests use it, and only the Postgres test reads `POSTGRES_URL`. `AsyncPostgresSaver` can only be made inside a running event loop, which is why agents ask the checkpointer's provider for it per run.
 
 A long conversation is summarised by deepagents' summarisation middleware, which offloads the turns it summarises away to `/conversation_history/`. `build_agent` routes that path to the thread's own state, so the offloaded turns are checkpointed with the thread and never written to the agent's folder.
 
@@ -56,5 +56,6 @@ A long conversation is summarised by deepagents' summarisation middleware, which
 From `apps/harness`:
 
 - `uv sync` installs the dependencies.
+- `docker compose up -d` starts Postgres on `127.0.0.1:5433`. Set `POSTGRES_PASSWORD` in `.env` (`openssl rand -hex 16`) and `POSTGRES_URL=postgresql://zumi:<password>@127.0.0.1:5433/zumi`.
 - `uv run python -m src.main` starts the server. `GET /zumi/health` reports that it is up.
 - `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright` and `uv run pytest` are the checks.

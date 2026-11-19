@@ -1,7 +1,9 @@
 import json
+import os
 from collections.abc import Iterator, Sequence
 from typing import Any, override
 
+import pytest
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
 from langchain_core.messages.tool import tool_call_chunk
@@ -9,6 +11,20 @@ from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResu
 from langchain_core.runnables import Runnable
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import Field
+
+from src.core.config import Settings, get_settings
+
+POSTGRES_URL = os.environ.get("POSTGRES_URL")
+"""The developer's Postgres from .env, which only tests that ask for it use"""
+
+
+@pytest.fixture(autouse=True)
+def _in_memory(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
+    monkeypatch.delenv("POSTGRES_URL", raising=False)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class ScriptedChatModel(BaseChatModel):

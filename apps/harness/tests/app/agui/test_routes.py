@@ -2,6 +2,7 @@ import asyncio
 import json
 import threading
 import time
+import uuid
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from pathlib import Path
@@ -14,6 +15,7 @@ from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 from langchain_core.tools import StructuredTool, ToolException, tool
 from langgraph.graph.state import CompiledStateGraph
+from pydantic import SecretStr
 from starlette.testclient import WebSocketTestSession
 from starlette.websockets import WebSocketDisconnect
 from websockets.sync.client import connect
@@ -22,8 +24,9 @@ from src.agents import Agent, build_agent
 from src.app.agui import ServedAgent
 from src.app.app import create_app
 from src.app.container import Container
+from src.clients.checkpointer import postgres_checkpointer
 from src.core.config import AgentSettings
-from tests.conftest import ScriptedChatModel
+from tests.conftest import POSTGRES_URL, ScriptedChatModel
 
 PATH = "/zumi/ws/greeter"
 GREETER = AgentSettings(
@@ -467,3 +470,31 @@ def test_two_runs_on_one_thread_take_turns(
     first.join()
 
     assert "Hello, Ada!" in [m.text for m in model.requests[2]]
+
+
+async def _forget(thread: str) -> None:
+    """Deletes thread from the developer's Postgres"""
+    async with postgres_checkpointer(SecretStr(str(POSTGRES_URL))) as saver:
+        await saver.adelete_thread(thread)
+
+
+@pytest.mark.skipif(POSTGRES_URL is None, reason="needs POSTGRES_URL in .env")
+def test_a_users_thread_survives_a_restart_with_postgres(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("POSTGRES_URL", str(POSTGRES_URL))
+    thread = f"test-{uuid.uuid4()}"
+    model = ScriptedChatModel(
+        replies=[AIMessage("Hello, Ada!"), AIMessage("Your name is Ada.")]
+    )
+
+    for text in ("Hi, I'm Ada", "What's my name?"):
+        with (
+            TestClient(_app(model)) as client,
+            client.websocket_connect(PATH) as socket,
+        ):
+            _run(socket, text, thread=thread)
+
+    asyncio.run(_forget(f"greeter:{thread}"))
+
+    assert _human(model, 1) == ["Hi, I'm Ada", "What's my name?"]

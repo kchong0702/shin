@@ -109,6 +109,12 @@ class Settings(BaseSettings):
     """Most graph steps one run may take before it fails; each model call and each
     tool call is a step"""
 
+    postgres_url: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("POSTGRES_URL", "postgres_url")
+    )
+    """Postgres that keeps conversations, such as the one compose.yaml runs; without
+    it they are kept in memory until the server stops"""
+
     gateway_url: HttpUrl | None = Field(
         default=None, validation_alias=AliasChoices("AIGW_BASE_URL", "gateway_url")
     )
